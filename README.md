@@ -2,11 +2,13 @@
 
 **Blueprint for Local Outreach & Canvassing Kit**
 
+**Live tool:** https://phillyblock.netlify.app/
+
 Many City of Philadelphia processes — block party permits, block captain applications, and others — require you to collect signatures from neighbors on your block. The city provides paper forms with blank lines but no address list, no household counts, and no map. You're on your own to figure out which addresses on your block are residential, go door to door, and mail the completed form to a city office.
 
-BLOCK fills that gap. Enter any Philly address and get a printable block map and address checklist built from city data. Print it and use it to guide and track your door-to-door progress as you get your city form's signature lines signed.
+BLOCK fills that gap. Enter any Philly address to get a printable block map and checklist built from City data. Use it to plan your door-to-door outreach and track your progress as you collect signatures on the City's form.
 
-BLOCK does not replace the City's official forms or requirements — it's just a tool to help you use them. Always consult the [City of Philadelphia](https://www.phila.gov/) for the official rules and requirements for your specific permit or request.
+BLOCK does not replace the City's official forms or requirements — it is a planning and tracking tool to help you stay organized while using them. Always consult the [City of Philadelphia](https://www.phila.gov/) for the official rules and requirements for your specific permit or request.
 
 ## How the data works
 
