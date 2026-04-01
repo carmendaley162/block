@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BLOCK — Blueprint for Local Outreach & Community Knowledge</title>
+<title>Philly BLOCK</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+<meta property="og:title" content="Philly BLOCK — Blueprint for Local Outreach & Community Knowledge">
+<meta property="og:description" content="A free tool for Philadelphia residents to organize block captain signature campaigns and block parties.">
+<meta property="og:image" content="https://phillyblock.netlify.app/og-image.png">
+<meta property="og:url" content="https://phillyblock.netlify.app">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
@@ -221,6 +227,14 @@
     }
     .print-stats strong { font-size: 12pt; }
 
+    .print-page-header {
+      display: flex !important;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #333;
+      margin-bottom: 0.1in;
+    }
+
     .print-page-number {
       display: flex !important;
       justify-content: space-between;
@@ -274,12 +288,37 @@
       vertical-align: middle;
     }
 
+    .print-unit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0 0.2in;
+      padding: 0.02in 0 0.04in 0.2in;
+    }
+    .print-unit-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding: 0.01in 0;
+    }
+    .print-unit-esd {
+      font-size: 6pt;
+      font-weight: 600;
+      letter-spacing: 0.06in;
+      color: #444;
+      line-height: 1;
+    }
+    .print-unit-blank {
+      width: 100%;
+      max-width: 0.9in;
+      border-bottom: 0.5pt solid #999;
+      height: 0.12in;
+    }
+
     .print-footer {
-      margin-top: 0.15in;
-      padding-top: 0.08in;
+      margin-top: 0.08in;
+      padding-top: 0.05in;
       font-size: 9pt;
       color: black;
-      border-top: 1pt solid black;
     }
     .print-key-item {
       display: flex;
@@ -308,6 +347,7 @@
     .screen-only { display: none !important; }
     .print-only { display: block !important; }
     .print-page-number { display: flex !important; }
+    .print-page-header { display: flex !important; }
     #print-checklist-container { display: contents !important; }
     #print-checklist-container .print-checklist-page { display: block !important; }
 
@@ -319,6 +359,7 @@
   .print-map-page { display: none; }
   .print-checklist-page { display: none; }
   .print-page-number { display: none; }
+  .print-page-header { display: none; }
 
   /* Site footer */
   .site-footer {
@@ -338,7 +379,7 @@
 <body>
 
 <header>
-  <h1><span>BLOCK</span></h1>
+  <h1>Philly <span>BLOCK</span></h1>
   <p class="subtitle"><span class="initial">B</span>lueprint for <span class="initial">L</span>ocal <span class="initial">O</span>utreach &amp; <span class="initial">C</span>ommunity <span class="initial">K</span>nowledge</p>
   <div class="taglines">
     <p>A tool for Philly neighborhood outreach, signatures, and community requests</p>
@@ -391,6 +432,11 @@
         <p>A tool for Philly neighborhood outreach, signatures, and community requests</p>
         <p>Print your BLOCK map and checklist, then check off each address as you talk with your neighbors</p>
         <p>BLOCK does not replace the City's official forms — it simply helps you stay organized as you fill them out</p>
+      </div>
+      <div style="text-align:left;font-size:8pt;color:#555;margin-top:0.1in;">Print your Philly BLOCK map and checklist here: https://phillyblock.netlify.app/</div>
+      <div style="text-align:center; margin-top:8px;">
+        <img src="qr-code.png" style="width:80px;height:80px;">
+        <div style="font-size:9pt;">Scan to open BLOCK</div>
       </div>
       <div class="print-page-number" id="print-map-pagenum"></div>
     </div>
@@ -634,8 +680,9 @@ async function loadBlock(parsed, direction) {
       });
     }
 
-    // Query lhhp_lead_certifications for apartment unit counts
-    const aptParcels = properties.filter(p => p.tag === 'APT' && p.parcel).map(p => p.parcel);
+    // Query lhhp_lead_certifications for apartment and multi-family unit counts
+    const multiUnitTags = ['APT', 'MF'];
+    const aptParcels = properties.filter(p => multiUnitTags.includes(p.tag) && p.parcel).map(p => p.parcel);
     if (aptParcels.length > 0) {
       const parcelList = aptParcels.map(p => `'${p}'`).join(',');
       const unitSql = `SELECT opa_account, COALESCE(li_rl_units, lhhp_certified_units) AS unit_count
@@ -648,7 +695,7 @@ async function loadBlock(parsed, direction) {
           if (r.unit_count && r.unit_count > 0) unitMap[r.opa_account] = r.unit_count;
         }
         for (const p of properties) {
-          if (p.tag === 'APT' && unitMap[p.parcel]) {
+          if (multiUnitTags.includes(p.tag) && unitMap[p.parcel]) {
             p.unitCount = unitMap[p.parcel];
             p.unitLabel = `(${unitMap[p.parcel]} units)`;
           }
@@ -658,9 +705,9 @@ async function loadBlock(parsed, direction) {
       }
     }
 
-    // Fallback for apartments with no lead cert data: parse building_code_description range
+    // Fallback for apartments/multi-family with no lead cert data: parse building_code_description range
     for (const p of properties) {
-      if (p.tag === 'APT' && p.unitCount === 1) {
+      if (multiUnitTags.includes(p.tag) && p.unitCount === 1) {
         const range = parseUnitRange(p.buildingCode);
         if (range) {
           p.unitCount = range.estimate;
@@ -676,7 +723,7 @@ async function loadBlock(parsed, direction) {
     currentBlockLabel = label;
     const displayLabel = toSentenceCase(label);
     document.getElementById('block-title').textContent = displayLabel + ' Block';
-    document.getElementById('print-block-title').textContent = displayLabel + ' Block';
+    document.getElementById('print-block-title').textContent = 'Philly BLOCK Map \u2014 ' + displayLabel;
 
     renderMap();
     renderPrintChecklist();
@@ -784,6 +831,7 @@ function getTag(cat) {
   if (cat.includes('HOTEL')) return 'HTL';
   if (cat.includes('SPECIAL PURPOSE')) return 'SP';
   if (cat.includes('APARTMENTS') && cat.includes('> 4')) return 'APT';
+  if (cat.includes('MULTI FAMILY')) return 'MF';
   if (cat.includes('GARAGE - COMMERCIAL')) return 'GAR';
   if (cat.includes('GARAGE - RESIDENTIAL')) return 'GAR';
   if (cat.includes('VACANT LAND')) return 'VL';
@@ -791,7 +839,7 @@ function getTag(cat) {
 }
 
 function isResidential(tag) {
-  return tag === '' || tag === 'MX' || tag === 'APT';
+  return tag === '' || tag === 'MX' || tag === 'APT' || tag === 'MF';
 }
 
 function renderPrintChecklist() {
@@ -803,14 +851,14 @@ function renderPrintChecklist() {
   const nonResCount = totalAll - resProps.length;
   const householdCount = resProps.reduce((sum, p) => sum + p.unitCount, 0);
   const goal = Math.ceil(householdCount * 0.75);
-  const hasApts = resProps.some(p => p.tag === 'APT');
+  const hasApts = resProps.some(p => p.tag === 'APT' || p.tag === 'MF');
   const estimatedApts = resProps.filter(p => p.unitEstimated);
   let statsHtml =
     `<strong>${householdCount} residential households</strong> across ${resProps.length} addresses on this block` +
     (nonResCount > 0 ? ` (plus ${nonResCount} non-residential)` : '') + `<br>` +
     `You need about <strong>${goal} signatures</strong> to reach 75%<br>`;
   if (hasApts) {
-    statsHtml += `<span style="font-size:9pt;">Household count includes individual units for apartment buildings.</span><br>`;
+    statsHtml += `<span style="font-size:9pt;">Household count includes individual units for apartment and multi-family buildings.</span><br>`;
   }
   if (estimatedApts.length > 0) {
     statsHtml += `<span style="font-size:9pt;color:var(--red);">⚠ ${estimatedApts.length} apartment building${estimatedApts.length > 1 ? 's have' : ' has'} an estimated unit count (shown as a range). Actual count may differ.</span><br>`;
@@ -819,7 +867,7 @@ function renderPrintChecklist() {
 
   document.getElementById('print-map-stats').innerHTML = statsHtml;
 
-  const headerText = 'BLOCK Checklist \u2014 ' + toSentenceCase(currentBlockLabel);
+  const headerText = 'Philly BLOCK Checklist \u2014 ' + toSentenceCase(currentBlockLabel);
   const keyHtml =
     '<div class="print-key-item"><span class="print-vacant-arrow">&#9654;</span> City records show this address may be empty. Check in person to be sure.</div>' +
     '<div class="print-key-tags">' +
@@ -832,15 +880,58 @@ function renderPrintChecklist() {
     '</div>' +
     '<div class="print-key-tags">' +
       '<span><strong>APT</strong> Apartments (5+ units)</span>' +
+      '<span><strong>MF</strong> Multi-Family</span>' +
       '<span><strong>GAR</strong> Garage</span>' +
       '<span><strong>VL</strong> Vacant Land</span>' +
     '</div>' +
     '<div class="print-key-note">Address list and household count are based on City of Philadelphia property records. Numbers may not be exact — some addresses may be missing or listed differently if they share a parcel or face a cross street, and apartment unit counts may not reflect recent changes. Use this as a guide while you collect signatures, and verify in person as you go.</div>';
 
-  const ROWS_PER_PAGE = 18;
+  // Paginate by vertical weight: multi-unit buildings take more space
+  const PAGE_BUDGET = 25; // row-equivalents per page (accounts for title/section label overhead)
+  const FIRST_PAGE_BUDGET = 14; // first checklist page has stats + key
 
-  const totalChecklistPages = Math.max(1, Math.ceil(sorted.length / ROWS_PER_PAGE));
-  const totalPages = 1 + totalChecklistPages; // page 1 is map
+  // Build a flat list of "slots" — each property becomes 1 slot (simple) or
+  // a header slot + grid-row slots (multi-unit, splittable across pages)
+  const slots = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    if (p.unitCount <= 1) {
+      slots.push({ type: 'row', propIdx: i });
+    } else {
+      const gridRows = Math.ceil(p.unitCount / 3);
+      slots.push({ type: 'unit-header', propIdx: i, gridRows });
+      for (let g = 0; g < gridRows; g++) {
+        const startUnit = g * 3;
+        const endUnit = Math.min(startUnit + 3, p.unitCount);
+        slots.push({ type: 'unit-grid-row', propIdx: i, cellCount: endUnit - startUnit });
+      }
+    }
+  }
+
+  // Paginate slots, allowing multi-unit buildings to split.
+  // Rule: never orphan a unit-header alone at page bottom — pull it to next page.
+  const pages = []; // each page is an array of slots
+  let page = [];
+  let budget = FIRST_PAGE_BUDGET;
+  for (let s = 0; s < slots.length; s++) {
+    const slot = slots[s];
+    if (page.length > 0 && 1 > budget) {
+      pages.push(page);
+      page = [];
+      budget = PAGE_BUDGET;
+    }
+    // Don't orphan a unit-header as the last item on a page
+    if (slot.type === 'unit-header' && budget <= 1 && page.length > 0) {
+      pages.push(page);
+      page = [];
+      budget = PAGE_BUDGET;
+    }
+    page.push(slot);
+    budget -= 1;
+  }
+  if (page.length > 0) pages.push(page);
+
+  const totalPages = 1 + pages.length; // page 1 is map
 
   const today = new Date();
   const dateStr = today.getFullYear() + '.' +
@@ -853,23 +944,49 @@ function renderPrintChecklist() {
   const container = document.getElementById('print-checklist-container');
   container.innerHTML = '';
 
-  for (let pg = 0; pg < totalChecklistPages; pg++) {
-    const startIdx = pg * ROWS_PER_PAGE;
-    const pageItems = sorted.slice(startIdx, startIdx + ROWS_PER_PAGE);
-    const globalStart = startIdx + 1;
-    const globalEnd = startIdx + pageItems.length;
-    const pageNum = pg + 2; // map is page 1
+  for (let pg = 0; pg < pages.length; pg++) {
+    const pageSlots = pages[pg];
+    const pageNum = pg + 2;
+    const isFirstChecklist = pg === 0;
+
+    // Figure out address range for this page
+    const propIndices = [...new Set(pageSlots.map(s => s.propIdx))];
+    const globalStart = propIndices[0] + 1;
+    const globalEnd = propIndices[propIndices.length - 1] + 1;
 
     const pageDiv = document.createElement('div');
     pageDiv.className = 'print-checklist-page';
-    pageDiv.innerHTML =
-      `<div class="print-header">${headerText}</div>` +
-      `<div class="print-stats">${statsHtml}</div>` +
-      `<div class="print-section-label" style="font-size:10pt;font-weight:700;margin-bottom:0.05in;">Addresses ${globalStart}\u2013${globalEnd} of ${totalAll}</div>` +
-      pageItems.map(printRow).join('') +
-      `<div class="print-footer">${keyHtml}</div>` +
-      `<div class="print-page-number"><span>${dateStr}</span><span>Page ${pageNum} of ${totalPages}</span></div>`;
 
+    let html = `<div class="print-page-header"><span>${dateStr}</span><span>Page ${pageNum} of ${totalPages}</span></div>`;
+    html += `<div class="print-header">${headerText}</div>`;
+
+    if (isFirstChecklist) {
+      html += `<div class="print-stats">${statsHtml}</div>`;
+      html += `<div class="print-footer">${keyHtml}</div>`;
+    }
+
+    html += `<div class="print-section-label" style="font-size:10pt;font-weight:700;margin:0.05in 0;">Addresses ${globalStart}\u2013${globalEnd} of ${totalAll}</div>`;
+
+    // Render slots
+    let prevGridPropIdx = null; // track if we need a continuation header
+    for (const slot of pageSlots) {
+      const p = sorted[slot.propIdx];
+      if (slot.type === 'row') {
+        html += printRow(p);
+      } else if (slot.type === 'unit-header') {
+        html += printUnitHeader(p);
+        prevGridPropIdx = slot.propIdx;
+      } else if (slot.type === 'unit-grid-row') {
+        // If this grid row starts a page without its header, show continuation
+        if (prevGridPropIdx !== slot.propIdx) {
+          html += printUnitContinuation(p);
+          prevGridPropIdx = slot.propIdx;
+        }
+        html += printUnitGridRow(slot.cellCount, slot.propIdx === pageSlots[pageSlots.length - 1].propIdx && slot === pageSlots[pageSlots.length - 1]);
+      }
+    }
+
+    pageDiv.innerHTML = html;
     container.appendChild(pageDiv);
   }
 }
@@ -877,11 +994,34 @@ function renderPrintChecklist() {
 function printRow(p) {
   const arrow = p.vacant ? '<span class="print-vacant-arrow">&#9654;</span>' : '';
   const tag = p.tag ? `<span class="print-tag">${p.tag}</span>` : '';
-  const units = p.unitLabel ? ` <span style="font-size:8pt;color:#555;">${p.unitLabel}</span>` : '';
   return `<div class="print-row">
-    ${arrow}<span class="print-addr">${toSentenceCase(p.address)}${units}</span>${tag}
+    ${arrow}<span class="print-addr">${toSentenceCase(p.address)}</span>${tag}
     <span class="print-checks"><span>Empty</span><span>Signed</span><span>Declined</span></span>
   </div>`;
+}
+
+function printUnitHeader(p) {
+  const arrow = p.vacant ? '<span class="print-vacant-arrow">&#9654;</span>' : '';
+  const tag = p.tag ? `<span class="print-tag">${p.tag}</span>` : '';
+  return `<div class="print-row" style="border-bottom:none;">
+    ${arrow}<span class="print-addr">${toSentenceCase(p.address)}</span>${tag}
+    <span style="font-size:8pt;color:#555;flex-shrink:0;">${p.unitLabel}</span>
+  </div>`;
+}
+
+function printUnitContinuation(p) {
+  const tag = p.tag ? `<span class="print-tag">${p.tag}</span>` : '';
+  return `<div class="print-row" style="border-bottom:none;font-style:italic;color:#555;">
+    <span class="print-addr">${toSentenceCase(p.address)} (cont.)</span>${tag}
+    <span style="font-size:8pt;color:#555;flex-shrink:0;">${p.unitLabel}</span>
+  </div>`;
+}
+
+function printUnitGridRow(cellCount, isLast) {
+  const cell = '<div class="print-unit-cell"><span class="print-unit-esd">E S D</span><span class="print-unit-blank"></span></div>';
+  const cells = cell.repeat(cellCount);
+  const border = isLast ? 'border-bottom:0.5pt solid #ccc;' : '';
+  return `<div class="print-unit-grid" style="${border}">${cells}</div>`;
 }
 
 // Allow Enter key to search
