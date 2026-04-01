@@ -1,10 +1,12 @@
 # BLOCK
 
-**Blueprint for Local Outreach & Community Knowledge**
+**Blueprint for Local Outreach & Canvassing Kit**
 
-A tool for Philadelphia neighborhood outreach, signatures, and community requests. Enter any Philly address to get a printable block map and neighbor checklist — then check off each address as you talk with your neighbors.
+Many City of Philadelphia processes — block party permits, block captain applications, and others — require you to collect signatures from neighbors on your block. The city provides paper forms with blank lines but no address list, no household counts, and no map. You're on your own to figure out which addresses on your block are residential, go door to door, and mail the completed form to a city office.
 
-BLOCK does not replace the City's official forms or requirements. It simply helps you stay organized as you fill them out. Always consult the [City of Philadelphia](https://www.phila.gov/) for the official rules and requirements for your specific permit or request.
+BLOCK fills that gap. Enter any Philly address and get a printable block map and address checklist built from city data. Print it and use it to guide and track your door-to-door progress as you get your city form's signature lines signed.
+
+BLOCK does not replace the City's official forms or requirements — it's just a tool to help you use them. Always consult the [City of Philadelphia](https://www.phila.gov/) for the official rules and requirements for your specific permit or request.
 
 ## How the data works
 
@@ -54,7 +56,7 @@ To get actual unit counts, BLOCK queries the LHHP lead certification dataset, wh
 
 The household total and 75% signature threshold reflect these unit counts rather than simply counting addresses.
 
-### The 75% signature goal and city requirements
+### Signature goals and city requirements
 
 BLOCK displays a 75% signature threshold based on residential households. This is specifically the requirement for **Philadelphia block party permits**. Other types of community requests, petitions, or permits may have different signature requirements — including non-residential signatories. BLOCK is a planning tool, not an authority on what any particular process requires.
 
