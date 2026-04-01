@@ -149,6 +149,7 @@
     margin-right: 0.25rem;
   }
   .legend-filled { background: #222; border: 2px solid #fff; box-shadow: 0 0 0 1px #ccc; }
+  .legend-multi { background: #c62828; border: 2px solid #fff; box-shadow: 0 0 0 1px #ccc; }
   .legend-hollow { background: #fff; border: 3px solid #222; box-shadow: 0 0 0 1px #ccc; }
 
   /* Print button */
@@ -169,7 +170,7 @@
   /* ——— Print Styles ——— */
   @media print {
     body { background: white; color: black; font-size: 13pt; }
-    header, .search-section, .print-btn, .error-msg, .search-hint { display: none !important; }
+    header, .search-section, .print-btn, .error-msg, .search-hint, .block-title { display: none !important; }
     .container { max-width: 100%; padding: 0; }
     #results { display: block !important; }
 
@@ -417,6 +418,7 @@
       <div id="map"></div>
       <div class="map-legend">
         <span class="legend-dot legend-filled"></span> Address
+        <span class="legend-dot legend-multi" style="margin-left:0.75rem;"></span> Multi-unit
         <span class="legend-dot legend-hollow" style="margin-left:0.75rem;"></span> Possibly vacant
       </div>
     </div>
@@ -425,20 +427,29 @@
 
     <!-- Print: Page 1 — Map + first addresses -->
     <div class="print-map-page print-only">
-      <h1 id="print-block-title"></h1>
-      <img id="print-map-img" alt="Block map" />
-      <div class="print-stats" id="print-map-stats"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="text-align:left;">
+          <div class="print-page-number" id="print-map-pagenum" style="display:block !important;margin:0 0 0.05in 0;"></div>
+          <h1 id="print-block-title" style="margin:0;"></h1>
+          <h1 id="print-block-subtitle" style="margin:0;"></h1>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <img src="qr-code.png" style="width:60px;height:60px;">
+          <div style="font-size:7pt;color:#555;margin-top:2px;">phillyblock.netlify.app</div>
+        </div>
+      </div>
       <div class="print-blurb">
         <p>A tool for Philly neighborhood outreach, signatures, and community requests</p>
         <p>Print your BLOCK map and checklist, then check off each address as you talk with your neighbors</p>
         <p>BLOCK does not replace the City's official forms — it simply helps you stay organized as you fill them out</p>
       </div>
-      <div style="text-align:left;font-size:8pt;color:#555;margin-top:0.1in;">Print your Philly BLOCK map and checklist here: https://phillyblock.netlify.app/</div>
-      <div style="text-align:center; margin-top:8px;">
-        <img src="qr-code.png" style="width:80px;height:80px;">
-        <div style="font-size:9pt;">Scan to open BLOCK</div>
+      <img id="print-map-img" alt="Block map" />
+      <div style="font-size:8pt;color:#555;margin-top:4px;text-align:center;">
+        <svg width="10" height="10" style="vertical-align:middle;margin-right:3px;"><circle cx="5" cy="5" r="4" fill="#222" stroke="#fff" stroke-width="1.5"/></svg> Address
+        <svg width="10" height="10" style="vertical-align:middle;margin-right:3px;margin-left:10px;"><circle cx="5" cy="5" r="4" fill="#c62828" stroke="#fff" stroke-width="1.5"/></svg> Multi-unit
+        <svg width="10" height="10" style="vertical-align:middle;margin-right:3px;margin-left:10px;"><circle cx="5" cy="5" r="4" fill="#fff" stroke="#222" stroke-width="2"/></svg> Possibly vacant
       </div>
-      <div class="print-page-number" id="print-map-pagenum"></div>
+      <div class="print-stats" id="print-map-stats"></div>
     </div>
 
     <!-- Print: Page 2+ — Checklist (generated dynamically) -->
@@ -723,7 +734,8 @@ async function loadBlock(parsed, direction) {
     currentBlockLabel = label;
     const displayLabel = toSentenceCase(label);
     document.getElementById('block-title').textContent = displayLabel + ' Block';
-    document.getElementById('print-block-title').textContent = 'Philly BLOCK Map \u2014 ' + displayLabel;
+    document.getElementById('print-block-title').textContent = 'Philly BLOCK Map';
+    document.getElementById('print-block-subtitle').textContent = displayLabel;
 
     renderMap();
     renderPrintChecklist();
@@ -746,12 +758,12 @@ function renderMap() {
 
   map = L.map(mapEl, {
     preferCanvas: true,
-    zoomControl: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    touchZoom: false,
+    zoomControl: true,
+    scrollWheelZoom: true,
+    doubleClickZoom: true,
+    touchZoom: true,
     boxZoom: false,
-    dragging: false,
+    dragging: true,
     keyboard: false,
   });
   const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -766,10 +778,11 @@ function renderMap() {
 
   for (const p of properties) {
     if (p.lat && p.lng) {
+      const isMulti = p.unitCount > 1;
       const marker = L.circleMarker([p.lat, p.lng], p.vacant
-        ? { radius: 8, fillColor: '#fff', color: '#222', weight: 3, fillOpacity: 1 }
-        : { radius: 6, fillColor: '#222', color: '#fff', weight: 2, fillOpacity: 0.85 }
-      ).bindPopup(`<strong>${toSentenceCase(p.address)}</strong>${p.vacant ? '<br><em>Possibly vacant</em>' : ''}`);
+        ? { radius: isMulti ? 6 : 5, fillColor: '#fff', color: '#222', weight: 2, fillOpacity: 1 }
+        : { radius: isMulti ? 6 : 4, fillColor: isMulti ? '#c62828' : '#222', color: '#fff', weight: 1.5, fillOpacity: 0.85 }
+      ).bindPopup(`<strong>${toSentenceCase(p.address)}</strong>${isMulti ? '<br>' + p.unitLabel : ''}${p.vacant ? '<br><em>Possibly vacant</em>' : ''}`);
       markersLayer.addLayer(marker);
       bounds.push([p.lat, p.lng]);
     }
@@ -778,6 +791,17 @@ function renderMap() {
   if (bounds.length > 0) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
     if (map.getZoom() < 16) map.setZoom(16);
+
+    // DEBUG: zoom level display (temporary)
+    const zoomDbg = L.control({ position: 'topright' });
+    zoomDbg.onAdd = function() {
+      const div = L.DomUtil.create('div');
+      div.style.cssText = 'background:#fff;padding:4px 8px;border:2px solid #333;border-radius:4px;font:bold 14px monospace;';
+      div.innerHTML = 'Zoom: ' + map.getZoom();
+      map.on('zoomend', () => { div.innerHTML = 'Zoom: ' + map.getZoom(); });
+      return div;
+    };
+    zoomDbg.addTo(map);
   }
 
   // Snapshot map for print once tiles finish loading
@@ -852,7 +876,26 @@ function renderPrintChecklist() {
   const householdCount = resProps.reduce((sum, p) => sum + p.unitCount, 0);
   const goal = Math.ceil(householdCount * 0.75);
   const hasApts = resProps.some(p => p.tag === 'APT' || p.tag === 'MF');
+  const multiUnitCount = resProps.filter(p => p.unitCount > 1).length;
   const estimatedApts = resProps.filter(p => p.unitEstimated);
+
+  const singleUnitCount = resProps.filter(p => p.unitCount <= 1).length;
+
+  // Map page: concise left-aligned summary
+  let mapStatsHtml =
+    `<div style="text-align:left;font-size:10pt;line-height:1.6;">` +
+    `Single-unit addresses: <strong>${singleUnitCount}</strong><br>` +
+    `Multi-unit addresses: <strong>${multiUnitCount}</strong><br>` +
+    `Residential addresses: <strong>${resProps.length}</strong>` +
+    (nonResCount > 0 ? ` (plus ${nonResCount} non-residential)` : '') + `<br>` +
+    `Residential households: <strong>${householdCount}</strong><br>` +
+    `Signatures needed (75% of residential households): <strong>${goal}</strong>` +
+    `<br><span style="font-size:9pt;color:#555;">Household count includes individual units for apartment and multi-family buildings.<br>` +
+    `Some addresses may be empty, so you might need fewer signatures.</span>` +
+    `</div>`;
+  document.getElementById('print-map-stats').innerHTML = mapStatsHtml;
+
+  // Checklist pages: detailed stats
   let statsHtml =
     `<strong>${householdCount} residential households</strong> across ${resProps.length} addresses on this block` +
     (nonResCount > 0 ? ` (plus ${nonResCount} non-residential)` : '') + `<br>` +
@@ -864,8 +907,6 @@ function renderPrintChecklist() {
     statsHtml += `<span style="font-size:9pt;color:var(--red);">⚠ ${estimatedApts.length} apartment building${estimatedApts.length > 1 ? 's have' : ' has'} an estimated unit count (shown as a range). Actual count may differ.</span><br>`;
   }
   statsHtml += `<span style="font-size:9pt;">Some addresses may be empty, so you might need fewer signatures.</span>`;
-
-  document.getElementById('print-map-stats').innerHTML = statsHtml;
 
   const headerText = 'Philly BLOCK Checklist \u2014 ' + toSentenceCase(currentBlockLabel);
   const keyHtml =
@@ -939,7 +980,7 @@ function renderPrintChecklist() {
     String(today.getDate()).padStart(2, '0');
 
   document.getElementById('print-map-pagenum').innerHTML =
-    `<span>${dateStr}</span><span>Page 1 of ${totalPages}</span>`;
+    `${dateStr} &mdash; Page 1 of ${totalPages}`;
 
   const container = document.getElementById('print-checklist-container');
   container.innerHTML = '';
