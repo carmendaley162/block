@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLOCK — Blueprint for Local Outreach & Community Knowledge</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
+<style>
+  :root {
+    --blue: #003366;
+    --gold: #ffcc00;
+    --light: #f5f5f0;
+    --green: #2e7d32;
+    --red: #c62828;
+    --gray: #666;
+    --border: #ddd;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--light);
+    color: #222;
+    line-height: 1.5;
+  }
+
+  header {
+    background: var(--blue);
+    color: white;
+    padding: 1.5rem 2rem;
+    text-align: center;
+  }
+  header h1 { font-size: 1.8rem; letter-spacing: 0.05em; }
+  header h1 span { color: var(--gold); }
+  header .subtitle { font-size: 1.1rem; opacity: 0.9; margin-top: 0.35rem; }
+  header .subtitle .initial { font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+  header .taglines { font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem; line-height: 1.6; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+  /* Search Section */
+  .search-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+  }
+  .search-section label { font-weight: 600; font-size: 1rem; display: block; margin-bottom: 0.5rem; }
+  .search-row { display: flex; gap: 0.75rem; }
+  .search-row input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-row input:focus { border-color: var(--blue); }
+  .search-row button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .search-row button:hover { background: #004488; }
+  .search-row button:disabled { background: #999; cursor: wait; }
+  .search-hint { font-size: 0.85rem; color: var(--gray); margin-top: 0.5rem; }
+
+  .direction-picker {
+    background: #fff8e1;
+    border: 2px solid var(--gold);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .direction-prompt { font-weight: 600; margin-bottom: 0.75rem; }
+  .direction-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .direction-btns button {
+    padding: 0.6rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .direction-btns button:hover { background: #004488; }
+
+  .error-msg {
+    background: #fdecea;
+    color: var(--red);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    display: none;
+  }
+
+  /* Results */
+  #results { display: none; }
+
+  .block-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--blue);
+  }
+
+  /* Map */
+  #map {
+    width: 100%;
+    height: 350px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+
+  /* Map legend */
+  .map-legend {
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-top: -1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+  }
+  .legend-filled { background: #222; border: 2px solid #fff; box-shadow: 0 0 0 1px #ccc; }
+  .legend-hollow { background: #fff; border: 3px solid #222; box-shadow: 0 0 0 1px #ccc; }
+
+  /* Print button */
+  .print-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+  }
+  .print-btn:hover { background: #004488; }
+
+  /* ——— Print Styles ——— */
+  @media print {
+    body { background: white; color: black; font-size: 13pt; }
+    header, .search-section, .print-btn, .error-msg, .search-hint { display: none !important; }
+    .container { max-width: 100%; padding: 0; }
+    #results { display: block !important; }
+
+    /* Page 1: Map + first addresses */
+    .print-map-page {
+      display: block !important;
+      text-align: center;
+      padding: 0.5in;
+    }
+    .print-map-page h1 {
+      font-size: 20pt;
+      margin-bottom: 0.2in;
+      color: black;
+    }
+    .print-map-page #print-map-img {
+      max-height: 4.5in;
+      width: 100%;
+      border: 2px solid #333;
+      object-fit: contain;
+    }
+    .print-map-page .print-stats {
+      margin-top: 0.15in;
+      font-size: 11pt;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .print-blurb {
+      margin-top: 0.1in;
+      font-size: 9pt;
+      color: #333;
+      line-height: 1.3;
+      text-align: center;
+    }
+
+    /* Page 2+: Checklist */
+    .print-checklist-page {
+      display: block !important;
+      padding: 0.5in;
+      page-break-before: always;
+    }
+    .print-checklist-page .print-header {
+      font-size: 16pt;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.1in;
+      border-bottom: 2pt solid black;
+      padding-bottom: 0.1in;
+    }
+
+    .print-stats {
+      font-size: 11pt;
+      text-align: center;
+      margin-bottom: 0.1in;
+      line-height: 1.4;
+    }
+    .print-stats strong { font-size: 12pt; }
+
+    .print-page-number {
+      display: flex !important;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #333;
+      margin-top: 0.15in;
+    }
+
+    .print-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.08in;
+      padding: 0.04in 0;
+      font-size: 10pt;
+      border-bottom: 0.5pt solid #ccc;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .print-vacant-arrow {
+      font-size: 13pt;
+      font-weight: 900;
+      line-height: 1;
+      color: black;
+      flex-shrink: 0;
+    }
+    .print-row .print-addr {
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .print-tag {
+      font-size: 7pt;
+      font-weight: 700;
+      border: 1pt solid black;
+      border-radius: 2pt;
+      padding: 0 2pt;
+      margin-left: 0.04in;
+      flex-shrink: 0;
+    }
+    .print-row .print-checks {
+      display: flex;
+      gap: 0.12in;
+      font-size: 9pt;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .print-row .print-checks span::before {
+      content: "\2610 ";
+      font-size: 12pt;
+      vertical-align: middle;
+    }
+
+    .print-footer {
+      margin-top: 0.15in;
+      padding-top: 0.08in;
+      font-size: 9pt;
+      color: black;
+      border-top: 1pt solid black;
+    }
+    .print-key-item {
+      display: flex;
+      align-items: center;
+      gap: 0.08in;
+      margin-bottom: 0.03in;
+    }
+    .print-key-item .print-vacant-arrow {
+      font-size: 13pt;
+    }
+    .print-key-tags {
+      display: flex;
+      gap: 0.25in;
+      font-size: 8pt;
+      margin-top: 0.03in;
+    }
+
+    .print-key-note {
+      font-size: 7pt;
+      color: #555;
+      margin-top: 0.05in;
+      font-style: italic;
+    }
+
+    /* Hide screen-only elements in print */
+    .screen-only { display: none !important; }
+    .print-only { display: block !important; }
+    .print-page-number { display: flex !important; }
+    #print-checklist-container { display: contents !important; }
+    #print-checklist-container .print-checklist-page { display: block !important; }
+
+    .site-footer { display: none !important; }
+  }
+
+  /* Hide print-only elements on screen */
+  .print-only { display: none; }
+  .print-map-page { display: none; }
+  .print-checklist-page { display: none; }
+  .print-page-number { display: none; }
+
+  /* Site footer */
+  .site-footer {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    font-size: 0.85rem;
+    color: var(--gray);
+  }
+  .site-footer a {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .site-footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>BLOCK</span></h1>
+  <p class="subtitle"><span class="initial">B</span>lueprint for <span class="initial">L</span>ocal <span class="initial">O</span>utreach &amp; <span class="initial">C</span>ommunity <span class="initial">K</span>nowledge</p>
+  <div class="taglines">
+    <p>A tool for Philly neighborhood outreach, signatures, and community requests</p>
+    <p>Print your BLOCK map and checklist, then check off each address as you talk with your neighbors</p>
+    <p>BLOCK does not replace the City's official forms — it simply helps you stay organized as you fill them out</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Search -->
+  <div class="search-section">
+    <label for="address-input">Enter your address</label>
+    <div class="search-row">
+      <input type="text" id="address-input" placeholder="e.g. 1342 Spruce St" autocomplete="street-address" />
+      <button id="search-btn" onclick="handleSearch()">Find My Block</button>
+    </div>
+    <div class="search-hint">Enter a Philly address to get a printable block map and neighbor checklist.</div>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="direction-picker" id="direction-picker" style="display:none;">
+      <p class="direction-prompt">This street has both North and South sections. Which side is your block on?</p>
+      <div class="direction-btns" id="direction-btns"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="block-title" id="block-title"></div>
+
+    <button class="print-btn screen-only" onclick="handlePrint()">🖨 Print / Save as PDF</button>
+
+    <!-- Screen Map -->
+    <div class="screen-only">
+      <div id="map"></div>
+      <div class="map-legend">
+        <span class="legend-dot legend-filled"></span> Address
+        <span class="legend-dot legend-hollow" style="margin-left:0.75rem;"></span> Possibly vacant
+      </div>
+    </div>
+
+    <!-- Tally and checklist are print-only; see print sections below -->
+
+    <!-- Print: Page 1 — Map + first addresses -->
+    <div class="print-map-page print-only">
+      <h1 id="print-block-title"></h1>
+      <img id="print-map-img" alt="Block map" />
+      <div class="print-stats" id="print-map-stats"></div>
+      <div class="print-blurb">
+        <p>A tool for Philly neighborhood outreach, signatures, and community requests</p>
+        <p>Print your BLOCK map and checklist, then check off each address as you talk with your neighbors</p>
+        <p>BLOCK does not replace the City's official forms — it simply helps you stay organized as you fill them out</p>
+      </div>
+      <div class="print-page-number" id="print-map-pagenum"></div>
+    </div>
+
+    <!-- Print: Page 2+ — Checklist (generated dynamically) -->
+    <div id="print-checklist-container" class="print-only"></div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  A passion project by <a href="https://www.linkedin.com/in/carmendaley/" target="_blank" rel="noopener">Carmen Daley</a>
+</footer>
+
+<script>
+const CARTO_URL = 'https://phl.carto.com/api/v2/sql';
+
+let properties = [];
+let map = null;
+let markersLayer = null;
+let currentBlockLabel = '';
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('error-msg').style.display = 'none';
+}
+
+// Add ordinal suffix to a bare number: 8 → 8TH, 2 → 2ND, 3 → 3RD, 21 → 21ST
+function addOrdinal(num) {
+  const n = parseInt(num, 10);
+  if (isNaN(n)) return num;
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return n + 'TH';
+  switch (n % 10) {
+    case 1: return n + 'ST';
+    case 2: return n + 'ND';
+    case 3: return n + 'RD';
+    default: return n + 'TH';
+  }
+}
+
+function parseAddress(input) {
+  let trimmed = input.trim().replace(/[.,]/g, '');
+  // Match: number + optional direction + street name + optional suffix
+  const m = trimmed.match(/^(\d+)\s+(.+)$/i);
+  if (!m) return null;
+
+  const houseNum = parseInt(m[1], 10);
+  let rest = m[2].toUpperCase().trim();
+
+  // Fix "S8TH" / "N8TH" / "W52ND" etc. — split direction glued to numbered street
+  rest = rest.replace(/^([NSEW])(\d)/i, '$1 $2');
+
+  // Compute block: 1342 => 1300-1399, 200 => 200-299
+  const blockStart = Math.floor(houseNum / 100) * 100;
+  const blockEnd = blockStart + 99;
+
+  // Strip trailing zip code if present (5 digits at end)
+  rest = rest.replace(/\s+\d{5}(-\d{4})?$/, '');
+
+  // Parse street parts: optional direction, name, optional suffix
+  const parts = rest.split(/\s+/);
+
+  // Common directions and suffixes
+  const dirs = ['N', 'S', 'E', 'W', 'NORTH', 'SOUTH', 'EAST', 'WEST'];
+  const suffixes = ['ST', 'AVE', 'BLVD', 'RD', 'DR', 'CT', 'PL', 'LN', 'WAY', 'TER', 'TERR',
+                    'STREET', 'AVENUE', 'BOULEVARD', 'ROAD', 'DRIVE', 'COURT', 'PLACE', 'LANE', 'CIRCLE', 'CIR', 'PKY', 'PKWY'];
+
+  let direction = '';
+  let streetName = '';
+  let suffix = '';
+
+  let startIdx = 0;
+  if (parts.length > 1 && dirs.includes(parts[0])) {
+    direction = parts[0].charAt(0); // Normalize to single letter
+    startIdx = 1;
+  }
+
+  // Normalize long suffix forms to OPA abbreviations
+  const suffixMap = {
+    'STREET': 'ST', 'AVENUE': 'AVE', 'BOULEVARD': 'BLVD', 'ROAD': 'RD',
+    'DRIVE': 'DR', 'COURT': 'CT', 'PLACE': 'PL', 'LANE': 'LN', 'CIRCLE': 'CIR',
+    'TERRACE': 'TER', 'PARKWAY': 'PKWY',
+  };
+
+  let endIdx = parts.length;
+  if (parts.length > 1 && suffixes.includes(parts[parts.length - 1])) {
+    suffix = suffixMap[parts[parts.length - 1]] || parts[parts.length - 1];
+    endIdx = parts.length - 1;
+  }
+
+  streetName = parts.slice(startIdx, endIdx).join(' ');
+  if (!streetName) return null;
+
+  // If street name is a bare number (e.g. "8" instead of "8TH"), add ordinal suffix
+  if (/^\d+$/.test(streetName)) {
+    streetName = addOrdinal(streetName);
+  }
+
+  const blockLabel = `${blockStart}-${blockEnd} ${direction ? direction + ' ' : ''}${streetName} ${suffix}`.replace(/\s+/g, ' ').trim();
+
+  return { houseNum, blockStart, blockEnd, streetName, direction, suffix, blockLabel };
+}
+
+async function cartoQuery(sql) {
+  const url = `${CARTO_URL}?q=${encodeURIComponent(sql)}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+  const data = await resp.json();
+  return data.rows || [];
+}
+
+function hideDirectionPicker() {
+  document.getElementById('direction-picker').style.display = 'none';
+}
+
+function buildWhere(parsed, directionOverride) {
+  const dir = directionOverride || parsed.direction;
+  let where = `street_name = '${parsed.streetName.replace(/'/g, "''")}'`;
+  where += ` AND CAST(house_number AS INTEGER) >= ${parsed.blockStart} AND CAST(house_number AS INTEGER) <= ${parsed.blockEnd}`;
+  if (dir) {
+    where += ` AND street_direction = '${dir}'`;
+  }
+  return where;
+}
+
+async function handleSearch() {
+  hideError();
+  hideDirectionPicker();
+  const input = document.getElementById('address-input').value;
+  if (!input.trim()) { showError('Please enter an address.'); return; }
+
+  const parsed = parseAddress(input);
+  if (!parsed) { showError('Could not parse address. Try format like "1342 Spruce St".'); return; }
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  try {
+    // If no direction provided, check if multiple directions exist for this street+block
+    if (!parsed.direction) {
+      const dirSql = `SELECT DISTINCT street_direction FROM opa_properties_public
+                      WHERE street_name = '${parsed.streetName.replace(/'/g, "''")}'
+                      AND CAST(house_number AS INTEGER) >= ${parsed.blockStart}
+                      AND CAST(house_number AS INTEGER) <= ${parsed.blockEnd}
+                      AND street_direction IS NOT NULL AND street_direction != ''`;
+      const dirRows = await cartoQuery(dirSql);
+      const dirs = dirRows.map(r => r.street_direction).filter(Boolean);
+
+      if (dirs.length > 1) {
+        // Show direction picker — don't return mixed results
+        const dirNames = { N: 'North', S: 'South', E: 'East', W: 'West' };
+        const container = document.getElementById('direction-btns');
+        container.innerHTML = '';
+        for (const d of dirs.sort()) {
+          const b = document.createElement('button');
+          b.textContent = `${dirNames[d] || d} ${parsed.streetName} ${parsed.suffix}`.trim();
+          b.onclick = () => loadBlock(parsed, d);
+          container.appendChild(b);
+        }
+        document.getElementById('direction-picker').style.display = 'block';
+        document.getElementById('direction-picker').scrollIntoView({ behavior: 'smooth' });
+        btn.disabled = false;
+        btn.textContent = 'Find My Block';
+        return;
+      }
+
+      // Only one direction (or none) — use it automatically
+      if (dirs.length === 1) {
+        parsed.direction = dirs[0];
+        // Update block label to include the direction
+        parsed.blockLabel = `${parsed.blockStart}-${parsed.blockEnd} ${parsed.direction} ${parsed.streetName} ${parsed.suffix}`.replace(/\s+/g, ' ').trim();
+      }
+    }
+
+    await loadBlock(parsed, parsed.direction);
+
+  } catch (e) {
+    console.error(e);
+    showError('Error fetching data. Please try again. (' + e.message + ')');
+    btn.disabled = false;
+    btn.textContent = 'Find My Block';
+  }
+}
+
+async function loadBlock(parsed, direction) {
+  hideError();
+  hideDirectionPicker();
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  // Rebuild label with direction if provided
+  const label = direction
+    ? `${parsed.blockStart}-${parsed.blockEnd} ${direction} ${parsed.streetName} ${parsed.suffix}`.replace(/\s+/g, ' ').trim()
+    : parsed.blockLabel;
+
+  try {
+    const where = buildWhere(parsed, direction);
+    const sql = `SELECT location, CAST(house_number AS INTEGER) AS house_number, house_extension, unit, parcel_number,
+                        category_code_description, building_code_description, ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng
+                 FROM opa_properties_public
+                 WHERE ${where}
+                 ORDER BY house_number, unit`;
+
+    const rows = await cartoQuery(sql);
+
+    if (rows.length === 0) {
+      showError(`No properties found for the ${label} block. Check spelling and try again.`);
+      return;
+    }
+
+    // Dedupe by address (keep first occurrence, which has coords)
+    const seen = new Set();
+    properties = [];
+    for (const r of rows) {
+      const addr = (r.location || '').trim();
+      if (!addr || seen.has(addr)) continue;
+      seen.add(addr);
+      const cat = (r.category_code_description || '').toUpperCase();
+      properties.push({
+        address: addr,
+        houseNum: r.house_number,
+        parcel: r.parcel_number,
+        lat: r.lat,
+        lng: r.lng,
+        category: cat,
+        buildingCode: (r.building_code_description || '').toUpperCase(),
+        vacant: cat.includes('VACANT'),
+        tag: getTag(cat),
+        unitCount: 1,
+        unitLabel: '',
+        signed: false,
+        skipped: false,
+      });
+    }
+
+    // Query lhhp_lead_certifications for apartment unit counts
+    const aptParcels = properties.filter(p => p.tag === 'APT' && p.parcel).map(p => p.parcel);
+    if (aptParcels.length > 0) {
+      const parcelList = aptParcels.map(p => `'${p}'`).join(',');
+      const unitSql = `SELECT opa_account, COALESCE(li_rl_units, lhhp_certified_units) AS unit_count
+                       FROM lhhp_lead_certifications
+                       WHERE opa_account IN (${parcelList})`;
+      try {
+        const unitRows = await cartoQuery(unitSql);
+        const unitMap = {};
+        for (const r of unitRows) {
+          if (r.unit_count && r.unit_count > 0) unitMap[r.opa_account] = r.unit_count;
+        }
+        for (const p of properties) {
+          if (p.tag === 'APT' && unitMap[p.parcel]) {
+            p.unitCount = unitMap[p.parcel];
+            p.unitLabel = `(${unitMap[p.parcel]} units)`;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch apartment unit counts:', e);
+      }
+    }
+
+    // Fallback for apartments with no lead cert data: parse building_code_description range
+    for (const p of properties) {
+      if (p.tag === 'APT' && p.unitCount === 1) {
+        const range = parseUnitRange(p.buildingCode);
+        if (range) {
+          p.unitCount = range.estimate;
+          p.unitLabel = `(${range.label})`;
+          p.unitEstimated = true;
+        }
+      }
+    }
+
+    properties.sort((a, b) => a.houseNum - b.houseNum);
+
+    document.getElementById('results').style.display = 'block';
+    currentBlockLabel = label;
+    const displayLabel = toSentenceCase(label);
+    document.getElementById('block-title').textContent = displayLabel + ' Block';
+    document.getElementById('print-block-title').textContent = displayLabel + ' Block';
+
+    renderMap();
+    renderPrintChecklist();
+
+    // Scroll to results
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+
+  } catch (e) {
+    console.error(e);
+    showError('Error fetching data. Please try again. (' + e.message + ')');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Find My Block';
+  }
+}
+
+function renderMap() {
+  const mapEl = document.getElementById('map');
+  if (map) { map.remove(); map = null; }
+
+  map = L.map(mapEl, {
+    preferCanvas: true,
+    zoomControl: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    dragging: false,
+    keyboard: false,
+  });
+  const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    maxZoom: 19,
+    crossOrigin: true,
+    subdomains: 'abcd',
+  }).addTo(map);
+
+  const bounds = [];
+  markersLayer = L.layerGroup().addTo(map);
+
+  for (const p of properties) {
+    if (p.lat && p.lng) {
+      const marker = L.circleMarker([p.lat, p.lng], p.vacant
+        ? { radius: 8, fillColor: '#fff', color: '#222', weight: 3, fillOpacity: 1 }
+        : { radius: 6, fillColor: '#222', color: '#fff', weight: 2, fillOpacity: 0.85 }
+      ).bindPopup(`<strong>${toSentenceCase(p.address)}</strong>${p.vacant ? '<br><em>Possibly vacant</em>' : ''}`);
+      markersLayer.addLayer(marker);
+      bounds.push([p.lat, p.lng]);
+    }
+  }
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+    if (map.getZoom() < 16) map.setZoom(16);
+  }
+
+  // Snapshot map for print once tiles finish loading
+  tileLayer.on('load', snapshotMap);
+}
+
+function snapshotMap() {
+  if (!map) return;
+  leafletImage(map, function(err, canvas) {
+    if (err || !canvas) return;
+    document.getElementById('print-map-img').src = canvas.toDataURL('image/png');
+  });
+}
+
+function handlePrint() {
+  const origTitle = document.title;
+  document.title = 'BLOCK - ' + currentBlockLabel;
+  leafletImage(map, function(err, canvas) {
+    if (!err && canvas) {
+      document.getElementById('print-map-img').src = canvas.toDataURL('image/png');
+    }
+    window.print();
+    document.title = origTitle;
+  });
+}
+
+
+function toSentenceCase(str) {
+  return str.replace(/\w\S*/g, function(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+}
+
+function parseUnitRange(buildingCode) {
+  if (buildingCode.includes('100+') || buildingCode.includes('100 +'))
+    return { label: '100+ units', estimate: 100 };
+  const m = buildingCode.match(/(\d+)\s*-\s*(\d+)\s*UNIT/);
+  if (m) return { label: `${m[1]}-${m[2]} units`, estimate: Math.round((parseInt(m[1]) + parseInt(m[2])) / 2) };
+  if (buildingCode.includes('APT') && buildingCode.match(/(\d+)\s*UNIT/)) {
+    const n = buildingCode.match(/(\d+)\s*UNIT/);
+    return { label: `~${n[1]} units`, estimate: parseInt(n[1]) };
+  }
+  return null;
+}
+
+function getTag(cat) {
+  if (cat.includes('MIXED USE') || cat.includes('MIXED-USE')) return 'MX';
+  if (cat.includes('COMMERCIAL') || cat.includes('RETAIL') || cat.includes('STORE')) return 'COM';
+  if (cat.includes('OFFICES')) return 'OFC';
+  if (cat.includes('INDUSTRIAL')) return 'IND';
+  if (cat.includes('HOTEL')) return 'HTL';
+  if (cat.includes('SPECIAL PURPOSE')) return 'SP';
+  if (cat.includes('APARTMENTS') && cat.includes('> 4')) return 'APT';
+  if (cat.includes('GARAGE - COMMERCIAL')) return 'GAR';
+  if (cat.includes('GARAGE - RESIDENTIAL')) return 'GAR';
+  if (cat.includes('VACANT LAND')) return 'VL';
+  return '';
+}
+
+function isResidential(tag) {
+  return tag === '' || tag === 'MX' || tag === 'APT';
+}
+
+function renderPrintChecklist() {
+  // Single list sorted by house number ascending
+  const sorted = properties.slice().sort((a, b) => a.houseNum - b.houseNum);
+
+  const totalAll = sorted.length;
+  const resProps = sorted.filter(p => isResidential(p.tag));
+  const nonResCount = totalAll - resProps.length;
+  const householdCount = resProps.reduce((sum, p) => sum + p.unitCount, 0);
+  const goal = Math.ceil(householdCount * 0.75);
+  const hasApts = resProps.some(p => p.tag === 'APT');
+  const estimatedApts = resProps.filter(p => p.unitEstimated);
+  let statsHtml =
+    `<strong>${householdCount} residential households</strong> across ${resProps.length} addresses on this block` +
+    (nonResCount > 0 ? ` (plus ${nonResCount} non-residential)` : '') + `<br>` +
+    `You need about <strong>${goal} signatures</strong> to reach 75%<br>`;
+  if (hasApts) {
+    statsHtml += `<span style="font-size:9pt;">Household count includes individual units for apartment buildings.</span><br>`;
+  }
+  if (estimatedApts.length > 0) {
+    statsHtml += `<span style="font-size:9pt;color:var(--red);">⚠ ${estimatedApts.length} apartment building${estimatedApts.length > 1 ? 's have' : ' has'} an estimated unit count (shown as a range). Actual count may differ.</span><br>`;
+  }
+  statsHtml += `<span style="font-size:9pt;">Some addresses may be empty, so you might need fewer signatures.</span>`;
+
+  document.getElementById('print-map-stats').innerHTML = statsHtml;
+
+  const headerText = 'BLOCK Checklist \u2014 ' + toSentenceCase(currentBlockLabel);
+  const keyHtml =
+    '<div class="print-key-item"><span class="print-vacant-arrow">&#9654;</span> City records show this address may be empty. Check in person to be sure.</div>' +
+    '<div class="print-key-tags">' +
+      '<span><strong>MX</strong> Mixed Use</span>' +
+      '<span><strong>COM</strong> Commercial</span>' +
+      '<span><strong>OFC</strong> Office</span>' +
+      '<span><strong>IND</strong> Industrial</span>' +
+      '<span><strong>HTL</strong> Hotel</span>' +
+      '<span><strong>SP</strong> Special (church, school, etc.)</span>' +
+    '</div>' +
+    '<div class="print-key-tags">' +
+      '<span><strong>APT</strong> Apartments (5+ units)</span>' +
+      '<span><strong>GAR</strong> Garage</span>' +
+      '<span><strong>VL</strong> Vacant Land</span>' +
+    '</div>' +
+    '<div class="print-key-note">Address list and household count are based on City of Philadelphia property records. Numbers may not be exact — some addresses may be missing or listed differently if they share a parcel or face a cross street, and apartment unit counts may not reflect recent changes. Use this as a guide while you collect signatures, and verify in person as you go.</div>';
+
+  const ROWS_PER_PAGE = 18;
+
+  const totalChecklistPages = Math.max(1, Math.ceil(sorted.length / ROWS_PER_PAGE));
+  const totalPages = 1 + totalChecklistPages; // page 1 is map
+
+  const today = new Date();
+  const dateStr = today.getFullYear() + '.' +
+    String(today.getMonth() + 1).padStart(2, '0') + '.' +
+    String(today.getDate()).padStart(2, '0');
+
+  document.getElementById('print-map-pagenum').innerHTML =
+    `<span>${dateStr}</span><span>Page 1 of ${totalPages}</span>`;
+
+  const container = document.getElementById('print-checklist-container');
+  container.innerHTML = '';
+
+  for (let pg = 0; pg < totalChecklistPages; pg++) {
+    const startIdx = pg * ROWS_PER_PAGE;
+    const pageItems = sorted.slice(startIdx, startIdx + ROWS_PER_PAGE);
+    const globalStart = startIdx + 1;
+    const globalEnd = startIdx + pageItems.length;
+    const pageNum = pg + 2; // map is page 1
+
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'print-checklist-page';
+    pageDiv.innerHTML =
+      `<div class="print-header">${headerText}</div>` +
+      `<div class="print-stats">${statsHtml}</div>` +
+      `<div class="print-section-label" style="font-size:10pt;font-weight:700;margin-bottom:0.05in;">Addresses ${globalStart}\u2013${globalEnd} of ${totalAll}</div>` +
+      pageItems.map(printRow).join('') +
+      `<div class="print-footer">${keyHtml}</div>` +
+      `<div class="print-page-number"><span>${dateStr}</span><span>Page ${pageNum} of ${totalPages}</span></div>`;
+
+    container.appendChild(pageDiv);
+  }
+}
+
+function printRow(p) {
+  const arrow = p.vacant ? '<span class="print-vacant-arrow">&#9654;</span>' : '';
+  const tag = p.tag ? `<span class="print-tag">${p.tag}</span>` : '';
+  const units = p.unitLabel ? ` <span style="font-size:8pt;color:#555;">${p.unitLabel}</span>` : '';
+  return `<div class="print-row">
+    ${arrow}<span class="print-addr">${toSentenceCase(p.address)}${units}</span>${tag}
+    <span class="print-checks"><span>Empty</span><span>Signed</span><span>Declined</span></span>
+  </div>`;
+}
+
+// Allow Enter key to search
+document.getElementById('address-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') handleSearch();
+});
+</script>
+
+</body>
+</html>
