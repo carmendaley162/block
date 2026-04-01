@@ -72,4 +72,4 @@ The household total and 75% signature threshold reflect these unit counts rather
 
 A passion project by [Carmen Daley](https://www.linkedin.com/in/carmendaley/).
 
-Built with [Leaflet](https://leafletjs.com/) for maps and the [City of Philadelphia's open data](https://opendataphilly.org/) APIs.
+Built with [Claude Code](https://claude.ai/code), [Leaflet](https://leafletjs.com/) for maps, and the [City of Philadelphia's open data](https://opendataphilly.org/) APIs.
